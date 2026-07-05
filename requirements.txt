@@ -1,0 +1,14 @@
+# Δικτυακά / DNS
+requests
+dnspython
+
+# Domain parsing & WHOIS
+tldextract
+python-whois
+
+# GeoIP/ASN
+geoip2
+
+# CLI / utils
+tqdm
+python-dotenv
