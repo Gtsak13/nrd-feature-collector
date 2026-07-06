@@ -15,6 +15,10 @@ venv/
 *.mmdb
 resources/*.mmdb
 
+# Daily run outputs (not tracked in git)
+output/
+raw/
+
 # OS / IDE
 .DS_Store
 .vscode/
