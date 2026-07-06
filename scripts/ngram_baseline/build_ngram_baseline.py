@@ -1,5 +1,5 @@
-"""Χτίσιμο του n-gram baseline για το feature #8 (ngram_score) ΚΑΙ
-εξαγωγή της λίστας brand SLDs για το feature #12 (typosquatting_similarity).
+"""Χτίσιμο του n-gram baseline για το feature #6 (ngram_score) ΚΑΙ
+εξαγωγή της λίστας brand SLDs για το feature #8 (typosquatting_similarity).
 
 Τρέχει ΜΙΑ φορά (όχι μέρος της ημερήσιας ροής): κατεβάζει τη λίστα Tranco top
 sites, μετράει τα bigrams/trigrams των SLDs και σώζει τις log-πιθανότητές τους
@@ -151,12 +151,12 @@ def build_baseline() -> None:
     """Ολόκληρη η διαδικασία: download -> μέτρημα -> log-πιθανότητες -> save JSON.
 
     Εξάγει ΔΥΟ αρχεία στο resources/:
-      1. ngram_baseline.json — bi/trigram log-πιθανότητες (feature #8)
-      2. brand_slds.json     — top-500 unique SLDs (feature #12, typosquatting)
+      1. ngram_baseline.json — bi/trigram log-πιθανότητες (feature #6)
+      2. brand_slds.json     — top-500 unique SLDs (feature #8, typosquatting)
     """
     domains = download_tranco_domains(TOP_N)
 
-    # --- Brand SLDs (feature #12: typosquatting_similarity) ---
+    # --- Brand SLDs (feature #8: typosquatting_similarity) ---
     brand_slds = extract_brand_slds(domains, BRAND_TOP_N)
     config.RESOURCES_DIR.mkdir(exist_ok=True)
     config.BRAND_SLDS_FILE.write_text(
@@ -164,7 +164,7 @@ def build_baseline() -> None:
     )
     print(f"Η λίστα brand SLDs σώθηκε στο {config.BRAND_SLDS_FILE}")
 
-    # --- N-gram baseline (feature #8: ngram_score) ---
+    # --- N-gram baseline (feature #6: ngram_score) ---
     print("Μέτρημα bigrams ...")
     bigram_counts = count_ngrams(domains, 2)
     bigram_logprobs, bigram_floor = counts_to_logprobs(bigram_counts)

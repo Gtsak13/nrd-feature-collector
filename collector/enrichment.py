@@ -92,39 +92,39 @@ def _has_ptr(ip: str) -> bool:
 
 
 def lookup_infrastructure(ip: str) -> dict:
-    """GeoIP/ASN + PTR για μία IP (features #24–#26).
+    """GeoIP/ASN + PTR για μία IP (features #19–#21).
 
     Τα asn/geo_country διαβάζονται από ΤΟΠΙΚΑ .mmdb (offline)· μόνο το PTR
     κάνει ένα DNS query.
     """
     _open_readers()
     return {
-        # Feature #24 — ASN (≈ hosting provider/δίκτυο). Ορισμένα ASN
+        # Feature #19 — ASN (≈ hosting provider/δίκτυο). Ορισμένα ASN
         # φιλοξενούν δυσανάλογο abuse (bulletproof hosting).
         "asn": _lookup_asn(ip),
 
-        # Feature #25 — Χώρα φιλοξενίας της IP (ISO code, π.χ. 'US').
+        # Feature #20 — Χώρα φιλοξενίας της IP (ISO code, π.χ. 'US').
         "geo_country": _lookup_country(ip),
 
-        # Feature #26 — Έχει η IP reverse DNS (PTR); Legit infra συνήθως ναι.
+        # Feature #21 — Έχει η IP reverse DNS (PTR); Legit infra συνήθως ναι.
         "ptr_present": _has_ptr(ip),
     }
 
 
 # --- (b) WHOIS -------------------------------------------------------------
 def lookup_whois(domain: str) -> dict:
-    """WHOIS best-effort (features #27–#30).
+    """WHOIS best-effort (features #22–#25).
 
     Το WHOIS είναι το «ληξιαρχείο» των domains: ποιος το καταχώρησε, πότε, για
     πόσο. Τι σημαίνει κάθε feature:
-      - #27 registrar: η εταιρεία καταχώρησης (π.χ. GoDaddy). Κάποιοι registrars
+      - #22 registrar: η εταιρεία καταχώρησης (π.χ. GoDaddy). Κάποιοι registrars
         χρησιμοποιούνται δυσανάλογο για abuse.
-      - #28 domain_age_days: μέρες από την καταχώρηση. Για NRDs είναι ~0 —
+      - #23 domain_age_days: μέρες από την καταχώρηση. Για NRDs είναι ~0 —
         χρήσιμο ως sanity check ότι όντως μιλάμε για νέο domain.
-      - #29 registration_duration_days: για πόσο καταχωρήθηκε. Τα κακόβουλα
+      - #24 registration_duration_days: για πόσο καταχωρήθηκε. Τα κακόβουλα
         domains συχνά παίρνονται για τον ελάχιστο χρόνο (1 χρόνο) — φθηνά &
         αναλώσιμα.
-      - #30 privacy_protection_flag: αν τα στοιχεία ιδιοκτήτη είναι κρυμμένα
+      - #25 privacy_protection_flag: αν τα στοιχεία ιδιοκτήτη είναι κρυμμένα
         πίσω από privacy/proxy service.
 
     Προσοχή: το WHOIS format αλλάζει ανά TLD και πολλά πεδία είναι πλέον κρυμμένα
@@ -191,12 +191,12 @@ def lookup_whois(domain: str) -> dict:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# REPUTATION FEATURES (#31 – #34)
+# REPUTATION FEATURES (#26 – #29)
 # ═══════════════════════════════════════════════════════════════════════════
 
 # --- (c) Reputation --------------------------------------------------------
 def query_abuseipdb(ip: str) -> int | None:
-    """abuseConfidenceScore (0–100) από το AbuseIPDB API (feature #31 ΚΑΙ πηγή του weak label).
+    """abuseConfidenceScore (0–100) από το AbuseIPDB API (feature #26 ΚΑΙ πηγή του weak label).
 
     Το AbuseIPDB είναι μια κοινοτική βάση όπου χρήστες αναφέρουν IPs που
     είδαν να κάνουν επιθέσεις. Το score 0–100 είναι η «βεβαιότητα» ότι η IP
@@ -249,7 +249,7 @@ def _spamhaus_listed(query_name: str) -> bool | None:
 
 
 def query_spamhaus_zen(ip: str) -> bool | None:
-    """DNSBL check στο Spamhaus ZEN για μία IP (feature #32 ΚΑΙ πηγή label· IP-level)."""
+    """DNSBL check στο Spamhaus ZEN για μία IP (feature #27 ΚΑΙ πηγή label· IP-level)."""
     # Το zen θέλει την IP με αντεστραμμένα τα octets, π.χ. 1.2.3.4 -> '4.3.2.1'.
     reversed_ip = ".".join(reversed(ip.split(".")))
     if config.SPAMHAUS_DQS_KEY:
@@ -261,7 +261,7 @@ def query_spamhaus_zen(ip: str) -> bool | None:
 
 
 def query_spamhaus_dbl(domain: str) -> bool | None:
-    """DNSBL check στο Spamhaus DBL για το domain (feature #33 ΚΑΙ πηγή label· domain-level).
+    """DNSBL check στο Spamhaus DBL για το domain (feature #28 ΚΑΙ πηγή label· domain-level).
 
     Σε αντίθεση με το zen (που ελέγχει IP), το DBL (Domain Block List) ελέγχει
     το ΙΔΙΟ το domain. Έτσι πιάνει κακόβουλα domains ακόμη κι αν φιλοξενούνται
@@ -306,8 +306,8 @@ mx_zen_cache: dict[str, bool | None] = {}
 def mx_reputation(mx_ips: list[str] | None) -> bool | None:
     """True αν ΟΠΟΙΑΔΗΠΟΤΕ IP των mail servers (MX) είναι listed στο Spamhaus ZEN.
 
-    Feature #34 (mx_spamhaus_zen_listed) — ΜΟΝΟ feature, ΔΕΝ μπαίνει στο label.
-    Ελέγχει τη reputation της mail υποδομής (σε αντίθεση με το #32 που ελέγχει
+    Feature #29 (mx_spamhaus_zen_listed) — ΜΟΝΟ feature, ΔΕΝ μπαίνει στο label.
+    Ελέγχει τη reputation της mail υποδομής (σε αντίθεση με το #27 που ελέγχει
     την web IP). Χρησιμοποιεί Spamhaus ZEN (γρήγορο DNS query, IP-level).
 
     Επιστρέφει:
@@ -336,12 +336,12 @@ def mx_reputation(mx_ips: list[str] | None) -> bool | None:
 # --- Orchestration ---------------------------------------------------------
 def compute_enrichment(domain: str, ips: list[str] | None,
                        mx_ips: list[str] | None) -> dict:
-    """Ενώνει όλα τα enrichment features (#24–#34) για ένα domain.
+    """Ενώνει όλα τα enrichment features (#19–#29) για ένα domain.
 
     `ips`    = οι IPs των A records (web/hosting) — ή None/[] αν δεν αναλύεται.
     `mx_ips` = οι IPs των MX (mail servers) — ή None/[] αν δεν έχει MX.
     Τα IP-based features υπολογίζονται μόνο αν υπάρχει IP· το WHOIS και το
-    spamhaus_dbl (domain-level) τρέχουν σε όλα· το mx reputation (#34) όσα έχουν MX.
+    spamhaus_dbl (domain-level) τρέχουν σε όλα· το mx reputation (#29) όσα έχουν MX.
     """
     # Το τελικό λεξικό ξεκινά με None παντού· ό,τι καταφέρουμε να βρούμε
     # παρακάτω το γράφει από πάνω (result.update). Έτσι, αν κάποια πηγή
@@ -349,20 +349,20 @@ def compute_enrichment(domain: str, ips: list[str] | None,
     result = {
         # ── FEATURES ──────────────────────────────────────────────────
         # (a) Infrastructure — βλ. lookup_infrastructure
-        "asn": None,                        # Feature #24
-        "geo_country": None,                # Feature #25
-        "ptr_present": None,                # Feature #26
+        "asn": None,                        # Feature #19
+        "geo_country": None,                # Feature #20
+        "ptr_present": None,                # Feature #21
         # (b) WHOIS — βλ. lookup_whois
-        "registrar": None,                  # Feature #27
-        "domain_age_days": None,            # Feature #28
-        "registration_duration_days": None, # Feature #29
-        "privacy_protection_flag": None,    # Feature #30
+        "registrar": None,                  # Feature #22
+        "domain_age_days": None,            # Feature #23
+        "registration_duration_days": None, # Feature #24
+        "privacy_protection_flag": None,    # Feature #25
         # (c) Reputation Features (web/hosting IP + domain)
-        "abuseipdb_score": None,            # Feature #31
-        "spamhaus_zen_listed": None,        # Feature #32
-        "spamhaus_dbl_listed": None,        # Feature #33
+        "abuseipdb_score": None,            # Feature #26
+        "spamhaus_zen_listed": None,        # Feature #27
+        "spamhaus_dbl_listed": None,        # Feature #28
         # (d) MX Reputation Feature — mail υποδομή (ΟΧΙ label, χωρίς leakage)
-        "mx_spamhaus_zen_listed": None,     # Feature #34
+        "mx_spamhaus_zen_listed": None,     # Feature #29
     }
 
     # ── 1. FEATURES ───────────────────────────────────────────────────
@@ -385,7 +385,7 @@ def compute_enrichment(domain: str, ips: list[str] | None,
     # Domain-based (Spamhaus DBL) — τρέχει σε ΟΛΑ τα domains
     result["spamhaus_dbl_listed"] = query_spamhaus_dbl(domain)
 
-    # ── 3. MX REPUTATION FEATURE (#34) ────────────────────────────────
+    # ── 3. MX REPUTATION FEATURE (#29) ────────────────────────────────
     # Reputation των mail servers (MX IPs) στο Spamhaus ZEN. Feature-only —
     # ΔΕΝ μπαίνει στο labeling, οπότε δεν εισάγει leakage.
     result["mx_spamhaus_zen_listed"] = mx_reputation(mx_ips)

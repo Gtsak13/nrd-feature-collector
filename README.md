@@ -1,6 +1,6 @@
 # nrd-feature-collector — Daily NRD Feature Collector
 
-Τρέχει **μία φορά τη μέρα**: κατεβάζει τη λίστα Newly Registered Domains (NRDs) από το whoisds.com, διαλέγει 1000 τυχαία domains, υπολογίζει **34 features** σε 3 ομάδες (ανά πηγή δεδομένων), βγάζει ένα ασθενές (weak) **label** (benign / malicious / unknown) και τα σώζει σε CSV.
+Τρέχει **μία φορά τη μέρα**: κατεβάζει τη λίστα Newly Registered Domains (NRDs) από το whoisds.com, διαλέγει 1000 τυχαία domains, υπολογίζει **29 features** σε 3 ομάδες (ανά πηγή δεδομένων), βγάζει ένα ασθενές (weak) **label** (benign / malicious / unknown) και τα σώζει σε CSV.
 
 ## Δομή
 
@@ -8,12 +8,12 @@
 collector/
 ├── config.py            # ρυθμίσεις, paths, API keys (.env), σταθερές
 ├── download.py          # κατέβασμα + parsing whoisds ZIP
-├── lexical.py           # features από το string (offline) — #1–#14
-├── dns_records.py       # DNS records — #15–#23
-├── enrichment.py        # GeoIP/ASN + WHOIS + reputation (+ MX rep) — #24–#34
+├── lexical.py           # features από το string (offline) — #1–#10
+├── dns_records.py       # DNS records — #11–#18
+├── enrichment.py        # GeoIP/ASN + WHOIS + reputation (+ MX rep) — #19–#29
 ├── labeling.py          # ο κανόνας για το weak label
 └── main.py              # ενώνει τα πάντα + σώζει το αρχείο
-scripts/ngram_baseline/           # one-time: baseline για feature #8 + brand SLDs για #12
+scripts/ngram_baseline/           # one-time: baseline για feature #6 + brand SLDs για #8
 resources/   # στατικά δεδομένα (baselines, brand SLDs, GeoLite2 mmdb)
 raw/         # cache των ημερήσιων whoisds .txt
 output/      # features_YYYY-MM-DD.csv

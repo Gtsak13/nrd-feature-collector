@@ -96,7 +96,7 @@ def _resolve_mx_ips(mx_answer) -> list[str]:
 
     Κάθε MX record δείχνει σε ένα hostname (π.χ. 'mail.example.com'). Για κάθε
     ένα κάνουμε ένα A query ώστε να βρούμε την IP του — αυτές τις IPs θα τις
-    ελέγξει το enrichment στο Spamhaus ZEN (feature #34, mx reputation).
+    ελέγξει το enrichment στο Spamhaus ZEN (feature #29, mx reputation).
     Επιστρέφει λίστα με ΜΟΝΑΔΙΚΕΣ IPs (κενή αν δεν υπάρχουν MX ή δεν αναλύονται).
     """
     if mx_answer is None:
@@ -116,24 +116,23 @@ def _resolve_mx_ips(mx_answer) -> list[str]:
 
 
 def compute_dns(domain: str) -> dict:
-    """Υπολογίζει ΟΛΑ τα DNS features για ένα domain (features #15–#23).
+    """Υπολογίζει ΟΛΑ τα DNS features για ένα domain (features #11–#18).
 
     Στο dict περιλαμβάνονται και οι IPs των A records (βοηθητικό πεδίο 'ips'),
     γιατί τις χρειάζεται το enrichment (τρέχει μόνο σε resolved domains).
     """
     # --- Εκτέλεση όλων των DNS queries ταυτόχρονα (Concurrency) ---
     # Κάθε query έχει timeout config.DNS_TIMEOUT δευτερόλεπτα. Αν γίνονταν
-    # σειριακά, ένα εντελώς νεκρό domain θα περίμενε 7 * 5 = 35 δευτερόλεπτα.
+    # σειριακά, ένα εντελώς νεκρό domain θα περίμενε 6 * 5 = 30 δευτερόλεπτα.
     # Με το ThreadPoolExecutor, όλα τρέχουν παράλληλα και ο μέγιστος χρόνος
     # αναμονής πέφτει στα 5 δευτερόλεπτα.
-    with concurrent.futures.ThreadPoolExecutor(max_workers=7) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
         future_a = executor.submit(_query_a, domain)
         future_mx = executor.submit(_query, domain, "MX")
         future_ns = executor.submit(_query, domain, "NS")
         future_txt = executor.submit(_query, domain, "TXT")
         future_cname = executor.submit(_query, domain, "CNAME")
         future_aaaa = executor.submit(_query, domain, "AAAA")
-        future_soa = executor.submit(_query, domain, "SOA")
 
         # --- A records (καθορίζει αν αναλύεται το domain) ---
         ips, min_ttl, rcode = future_a.result()
@@ -143,7 +142,6 @@ def compute_dns(domain: str) -> dict:
         # --- MX ---
         mx_answer = future_mx.result()
         mx_count = _count(mx_answer)
-        has_mx = mx_count > 0
 
         # --- NS ---
         ns_answer = future_ns.result()
@@ -151,7 +149,6 @@ def compute_dns(domain: str) -> dict:
 
         # --- TXT / SPF ---
         txt_answer = future_txt.result()
-        has_txt = txt_answer is not None
         has_spf = _has_spf(txt_answer)
 
         # --- CNAME ---
@@ -160,75 +157,63 @@ def compute_dns(domain: str) -> dict:
 
         # --- AAAA (IPv6) ---
         # Τα AAAA records δίνουν τις IPv6 διευθύνσεις. Πολλά εφήμερα κακόβουλα
-        # domains δεν ρυθμίζουν IPv6. 
+        # domains δεν ρυθμίζουν IPv6.
         aaaa_answer = future_aaaa.result()
         num_aaaa_records = _count(aaaa_answer)
-        has_aaaa = num_aaaa_records > 0
-
-        # --- SOA (Start of Authority) ---
-        # Το SOA δείχνει αν το domain έχει ρυθμισμένη ζώνη.
-        soa_answer = future_soa.result()
-        has_soa = soa_answer is not None
 
     # --- MX IPs (βοηθητικό πεδίο, ΟΧΙ feature) ---
     # Οι IPs των mail servers. Χρειάζονται ένα δεύτερο επίπεδο DNS (MX host ->
     # A record), γι' αυτό γίνονται εκτός του παραπάνω block. Το enrichment θα
-    # ελέγξει τη reputation τους στο Spamhaus ZEN (feature #34).
+    # ελέγξει τη reputation τους στο Spamhaus ZEN (feature #29).
     mx_ips = _resolve_mx_ips(mx_answer)
 
     return {
-        # Feature #15 — Αν αναλύεται το domain + ο κωδικός απάντησης (rcode)
-        # resolves_flag = True αν πήραμε έστω ένα A record. Το rcode εξηγεί
-        # το «γιατί όχι»: 'NXDOMAIN' (δεν υπάρχει), 'timeout', 'SERVFAIL'.
+        # Feature #11 — Αν αναλύεται το domain + ο κωδικός απάντησης (rcode)
+        # resolves_flag = True αν πήραμε έστω ένα A record. Το rcode είναι
+        # ΠΛΗΡΟΦΟΡΙΑΚΟ πεδίο (ΟΧΙ feature): εξηγεί το «γιατί όχι» ('NXDOMAIN',
+        # 'timeout', 'SERVFAIL') και δεν τροφοδοτεί το μοντέλο.
         "resolves_flag": resolves_flag,
         "rcode": rcode,
 
-        # Feature #16 — Πλήθος A records
+        # Feature #12 — Πλήθος A records
         # Πόσες IPs επέστρεψε το domain. 0 αν δεν αναλύεται.
         "num_a_records": num_a_records,
 
-        # Feature #17 — Ελάχιστο TTL των A records
+        # Feature #13 — Ελάχιστο TTL των A records
         # Το TTL λέει για πόσα δευτερόλεπτα «ζει» μια εγγραφή στην cache.
         # Πολύ μικρό TTL συνδέεται με fast-flux (συχνή αλλαγή IP). None αν
         # δεν αναλύεται.
         "min_ttl": min_ttl,
 
-        # Feature #18 — Ύπαρξη & πλήθος MX records
-        # Τα MX records δείχνουν ποιος server δέχεται email για το domain.
-        # has_mx=True σημαίνει ότι το domain μπορεί να στέλνει/λαμβάνει email.
-        "has_mx": has_mx,
+        # Feature #14 — Πλήθος MX records
+        # Τα MX records δείχνουν ποιος server δέχεται email για το domain. Η
+        # τιμή > 0 σημαίνει ότι το domain μπορεί να στέλνει/λαμβάνει email
+        # (δηλαδή το πλήθος κωδικοποιεί και το boolean «έχει MX»).
         "mx_count": mx_count,
 
-        # Feature #19 — Πλήθος NS records
+        # Feature #15 — Πλήθος NS records
         # Οι NS (name servers) είναι οι servers που «φιλοξενούν» το DNS του
         # domain. Πολύ λίγοι/περίεργοι NS μπορεί να είναι ένδειξη.
         "num_ns": num_ns,
 
-        # Feature #20 — Ύπαρξη TXT record & SPF
-        # Τα TXT είναι ελεύθερο κείμενο. Το SPF (TXT που ξεκινά με 'v=spf1')
-        # δηλώνει ποιοι επιτρέπεται να στέλνουν email για το domain —
-        # η ύπαρξή του δείχνει πιο «σοβαρή» ρύθμιση.
-        "has_txt": has_txt,
+        # Feature #16 — Ύπαρξη SPF record
+        # Το SPF (TXT που ξεκινά με 'v=spf1') δηλώνει ποιοι επιτρέπεται να
+        # στέλνουν email για το domain — η ύπαρξή του δείχνει πιο «σοβαρή» ρύθμιση.
         "has_spf": has_spf,
 
-        # Feature #21 — Ύπαρξη CNAME
+        # Feature #17 — Ύπαρξη CNAME
         # Το CNAME είναι «ψευδώνυμο» που δείχνει σε άλλο domain (alias).
         "cname_present": cname_present,
 
-        # Feature #22 — Ύπαρξη & πλήθος AAAA records (IPv6)
-        # Τα AAAA records δίνουν IPv6 διευθύνσεις. Η ύπαρξή τους δείχνει πιο
-        # ώριμη υποδομή — τα εφήμερα malicious domains σπάνια ρυθμίζουν IPv6.
-        "has_aaaa": has_aaaa,
+        # Feature #18 — Πλήθος AAAA records (IPv6)
+        # Τα AAAA records δίνουν IPv6 διευθύνσεις. Η τιμή > 0 δείχνει πιο ώριμη
+        # υποδομή (κωδικοποιεί και το boolean «έχει IPv6») — τα εφήμερα malicious
+        # domains σπάνια ρυθμίζουν IPv6.
         "num_aaaa_records": num_aaaa_records,
-
-        # Feature #23 — Ύπαρξη SOA record
-        # Το SOA (Start of Authority) δηλώνει τον primary NS και τα metadata
-        # της ζώνης. Η ύπαρξή του δείχνει σωστά ρυθμισμένη DNS ζώνη.
-        "has_soa": has_soa,
 
         # Βοηθητικά πεδία (ΟΧΙ features): οι IPs των A records και των MX mail
         # servers. Τα περνάμε στο enrichment — τα A IPs για GeoIP/reputation,
-        # τα MX IPs για το mx reputation (feature #34).
+        # τα MX IPs για το mx reputation (feature #29).
         "ips": ips,
         "mx_ips": mx_ips,
     }

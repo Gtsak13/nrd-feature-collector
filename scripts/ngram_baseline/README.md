@@ -1,11 +1,11 @@
 # scripts/ngram_baseline/
 
-Χτίζει το **n-gram baseline** που χρειάζεται το feature #8 (`ngram_score`)
+Χτίζει το **n-gram baseline** που χρειάζεται το feature #6 (`ngram_score`)
 στο [`collector/lexical.py`](../../collector/lexical.py).
 
 ## Τι κάνει
 
-Το feature #8 απαντά στο ερώτημα: «πόσο φυσικό μοιάζει αυτό το domain name;».
+Το feature #6 απαντά στο ερώτημα: «πόσο φυσικό μοιάζει αυτό το domain name;».
 Ένα legit domain (π.χ. `facebook`) αποτελείται από συλλαβές που συναντάμε
 συχνά στη γλώσσα, ενώ ένα DGA domain (π.χ. `xkqzjf`) έχει αλληλουχίες γραμμάτων
 που σπάνια εμφανίζονται μαζί.
