@@ -34,15 +34,18 @@ def parse_args() -> argparse.Namespace:
         default=date.today(),
         help="Ημέρα συλλογής (YYYY-MM-DD). Default: σήμερα.",
     )
-
     parser.add_argument(
         "--limit",
         type=int,
         default=config.SAMPLE_SIZE,
         help=f"Πόσα domains να συλλέξει (default: {config.SAMPLE_SIZE}). ",
     )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Ξαναγράφει το output ακόμη κι αν υπάρχει ήδη για τη μέρα.",
+    )
     return parser.parse_args()
-
 
 
 def csv_path_for(day: date) -> Path:
@@ -50,7 +53,7 @@ def csv_path_for(day: date) -> Path:
     return config.OUTPUT_DIR / f"features_{day.isoformat()}.csv"
 
 
-def collect_for_day(day: date, limit: int = config.SAMPLE_SIZE) -> None:
+def collect_for_day(day: date, limit: int = config.SAMPLE_SIZE, force: bool = False) -> None:
     """Κάνει ολόκληρη τη συλλογή για μία ημέρα και σώζει το αποτέλεσμα.
 
     Για κάθε domain χτίζει ένα row (dict) ενώνοντας τα dictionaries των
@@ -72,6 +75,11 @@ def collect_for_day(day: date, limit: int = config.SAMPLE_SIZE) -> None:
 
     config.OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     csv_path = csv_path_for(day)
+    
+    if not force and csv_path.exists():
+        print(f"Σφάλμα: Το αρχείο {csv_path} υπάρχει ήδη. Χρησιμοποιήστε --force για overwrite.")
+        return
+
     writer = None
     rows_written = 0
 
@@ -110,10 +118,11 @@ def collect_for_day(day: date, limit: int = config.SAMPLE_SIZE) -> None:
 
     print(f"Επιτυχία! Αποθηκεύτηκαν {rows_written} εγγραφές στο: {csv_path}")
 
+
 def main() -> None:
     """Entry point: διαβάζει args, τρέχει τον collector."""
     args = parse_args()
-    collect_for_day(args.date, limit=args.limit)
+    collect_for_day(args.date, limit=args.limit, force=args.force)
 
 if __name__ == "__main__":
     main()

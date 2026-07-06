@@ -1,8 +1,7 @@
 # Secrets
 .env
 
-# Κείμενο διπλωματικής — μένει ΜΟΝΟ τοπικά
-latex/
+
 
 # Python
 __pycache__/

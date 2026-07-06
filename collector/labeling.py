@@ -1,4 +1,4 @@
-"""Στρατηγική weak labeling (spec §10).
+"""Στρατηγική weak labeling.
 
 Η λίστα NRDs δεν έχει έτοιμη ετικέτα. Παράγουμε ασθενές (weak) label από
 τα reputation σήματα της υποδομής. Κρατάμε ΚΑΙ το `reason` ώστε να φαίνεται
@@ -9,7 +9,7 @@
     supervision / data programming*: Mintz et al. 2009· Ratner et al. 2016.
   - Η χρήση blocklists/reputation ως πηγή label είναι standard στον χώρο
     (label-then-classify): Zhauniarovich et al. 2018 §3.3· EXPOSURE (Bilge
-    et al.)· Lewis et al. 2020 (AbuseIPDB).
+    et al.).
 
 Περιορισμοί:
   - Absence ≠ benign -> γι' αυτό υπάρχει η κλάση `unknown` (Sinha et al. 2008).
